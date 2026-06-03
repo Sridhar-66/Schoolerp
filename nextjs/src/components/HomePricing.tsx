@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React from 'react';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
@@ -77,3 +77,4 @@ const HomePricing = () => {
 };
 
 export default HomePricing;
+

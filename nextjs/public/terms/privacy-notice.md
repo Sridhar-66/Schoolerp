@@ -1,4 +1,4 @@
-# Privacy Notice
+﻿# Privacy Notice
 
 Last Updated: December 14, 2024
 
@@ -100,4 +100,5 @@ We use cookies for:
 
 For privacy-related questions:
 Email: contact@supasass.com
+
 

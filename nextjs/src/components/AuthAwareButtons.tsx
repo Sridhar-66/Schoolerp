@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from 'react';
 import { createSPASassClient } from '@/lib/supabase/client';
 import { ArrowRight, ChevronRight } from 'lucide-react';

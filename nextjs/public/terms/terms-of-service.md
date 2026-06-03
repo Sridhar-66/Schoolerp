@@ -1,4 +1,4 @@
-# Terms of Service
+﻿# Terms of Service
 
 Last Updated: December 14, 2024
 
@@ -64,7 +64,7 @@ Our Services include:
 ## 8. Intellectual Property
 
 ### 8.1 Our Rights
-- All content, features, and functionality are owned by Adam Raźniewski oprogramowanie
+- All content, features, and functionality are owned by Adam RaÅºniewski oprogramowanie
 - Our trademarks and trade dress may not be used without written permission
 
 ### 8.2 Your Rights
@@ -99,4 +99,5 @@ These Terms shall be governed by and construed in accordance with the laws of Po
 
 For any questions about these Terms, please contact us at:
 Email: contact@supasass.com
+
 

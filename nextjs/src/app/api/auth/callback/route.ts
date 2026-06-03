@@ -1,4 +1,4 @@
-// src/app/api/auth/callback/route.ts
+﻿// src/app/api/auth/callback/route.ts
 import { NextResponse } from 'next/server'
 import { createSSRSassClient } from "@/lib/supabase/server";
 
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         }
 
         // If MFA is not required or already verified, proceed to app
-        return NextResponse.redirect(new URL('/app', request.url))
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
 
     // If no code provided, redirect to login

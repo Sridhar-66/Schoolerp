@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { createSPASassClient } from '@/lib/supabase/client';
@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
 
             setSuccess(true);
             setTimeout(() => {
-                router.push('/app');
+                router.push('/admin/dashboard');
             }, 3000);
         } catch (err) {
             if (err instanceof Error) {

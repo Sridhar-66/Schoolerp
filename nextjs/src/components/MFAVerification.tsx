@@ -1,4 +1,4 @@
-// src/components/MFAVerification.tsx
+﻿// src/components/MFAVerification.tsx
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';

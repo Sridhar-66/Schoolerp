@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import {createSPASassClient} from '@/lib/supabase/client';
 import { useState } from 'react';

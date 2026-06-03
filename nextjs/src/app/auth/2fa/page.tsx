@@ -1,4 +1,4 @@
-// src/app/auth/2fa/page.tsx
+﻿// src/app/auth/2fa/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -31,7 +31,7 @@ export default function TwoFactorAuthPage() {
             if (aalError) throw aalError;
 
             if (aal.currentLevel === 'aal2' || aal.nextLevel === 'aal1') {
-                router.push('/app');
+                router.push('/admin/dashboard');
                 return;
             }
 
@@ -43,7 +43,7 @@ export default function TwoFactorAuthPage() {
     };
 
     const handleVerified = () => {
-        router.push('/app');
+        router.push('/admin/dashboard');
     };
 
     if (loading) {

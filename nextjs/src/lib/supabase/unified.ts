@@ -1,4 +1,4 @@
-import {SupabaseClient} from "@supabase/supabase-js";
+﻿import {SupabaseClient} from "@supabase/supabase-js";
 import {Database} from "@/lib/types";
 
 export enum ClientType {
@@ -101,3 +101,4 @@ export class SassClient {
 
 
 }
+

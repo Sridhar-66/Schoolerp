@@ -1,36 +1,35 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Analytics } from '@vercel/analytics/next';
-import CookieConsent from "@/components/Cookies";
-import { GoogleAnalytics } from '@next/third-parties/google'
+﻿import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 
+// Points to your stylesheet using a relative import path
+import "./globals.css";
+
+// Optimize font loading to prevent layout shifts
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_PRODUCTNAME,
-  description: "The best way to build your SaaS product.",
+  title: {
+    template: "%s | School ERP",
+    default: "School ERP - Management System", 
+  },
+  description: "Comprehensive ERP Management System for modern school administrations.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  let theme = process.env.NEXT_PUBLIC_THEME
-  if(!theme) {
-    theme = "theme-sass3"
-  }
-  const gaID = process.env.NEXT_PUBLIC_GOOGLE_TAG;
+}) {
   return (
-    <html lang="en">
-    <body className={theme}>
-      {children}
-      <Analytics />
-      <CookieConsent />
-      { gaID && (
-          <GoogleAnalytics gaId={gaID}/>
-      )}
-
-    </body>
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} font-sans antialiased bg-background text-foreground min-h-screen`}
+      >
+        {children}
+      </body>
     </html>
   );
 }

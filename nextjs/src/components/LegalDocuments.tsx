@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React from "react";
 import {FileText, RefreshCw, Shield} from "lucide-react";
 import Link from "next/link";

@@ -1,8 +1,8 @@
-// src/app/auth/login/page.tsx
+﻿// src/app/auth/login/page.tsx
 'use client';
 
 import { createSPASassClient } from '@/lib/supabase/client';
-import {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SSOButtons from '@/components/SSOButtons';
@@ -26,7 +26,6 @@ export default function LoginPage() {
 
             if (signInError) throw signInError;
 
-            // Check if MFA is required
             const supabase = client.getSupabaseClient();
             const { data: mfaData, error: mfaError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
@@ -35,7 +34,25 @@ export default function LoginPage() {
             if (mfaData.nextLevel === 'aal2' && mfaData.nextLevel !== mfaData.currentLevel) {
                 setShowMFAPrompt(true);
             } else {
-                router.push('/app');
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (!user) throw new Error('No user found');
+
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileError || !profile) throw new Error('Profile not found');
+
+                const roleRedirects: Record<string, string> = {
+                    admin: '/admin/dashboard',
+                    teacher: '/teacher/dashboard',
+                    student: '/student/dashboard',
+                };
+
+                router.push(roleRedirects[profile.role] ?? '/auth/login');
                 return;
             }
         } catch (err) {
@@ -49,13 +66,11 @@ export default function LoginPage() {
         }
     };
 
-
     useEffect(() => {
-        if(showMFAPrompt) {
+        if (showMFAPrompt) {
             router.push('/auth/2fa');
         }
     }, [showMFAPrompt, router]);
-
 
     return (
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">

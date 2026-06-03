@@ -1,4 +1,4 @@
-// src/lib/context/GlobalContext.tsx
+﻿// src/lib/context/GlobalContext.tsx
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';

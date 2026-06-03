@@ -1,4 +1,4 @@
-# Refund Policy
+﻿# Refund Policy
 
 Last Updated: December 14, 2024
 
@@ -82,4 +82,5 @@ Email: contact@komiru.com
 - We reserve the right to modify this policy
 - Changes effective upon posting
 - Current customers notified of material changes
+
 
