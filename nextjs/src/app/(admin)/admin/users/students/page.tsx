@@ -1,32 +1,17 @@
-﻿"use client"; // 1. Turn this into a client component so onClick works
+﻿"use client";
 
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { admitStudent } from "@/services/students/admitStudent" // 2. Import your server action
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function StudentsPage() {
-  
-  // 3. Create the handler to fire when the button is clicked
-  async function handleAdmitStudent() {
-    console.log("🔥 ADD STUDENT BUTTON CLICKED 🔥");
-
-    try {
-      const result = await admitStudent();
-      console.log("SUCCESS ON CLIENT:", result);
-      alert("SUCCESS: Check your database profile table!");
-    } catch (err) {
-      console.error("CATCHING ERROR ON CLIENT:");
-      console.error(err);
-      alert("ERROR: Check your code terminal");
-    }
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Students</h1>
-        {/* 4. Attach the click handler here */}
-        <Button onClick={handleAdmitStudent}>Add Student</Button>
+        <Button asChild>
+          <Link href="/admin/users/students/add">Add Student</Link>
+        </Button>
       </div>
       <Table>
         <TableHeader>
@@ -46,5 +31,5 @@ export default function StudentsPage() {
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

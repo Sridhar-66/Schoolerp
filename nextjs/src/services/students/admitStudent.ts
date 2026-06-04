@@ -2,48 +2,68 @@
 
 import { createServerAdminClient } from "@/lib/supabase/serverAdminClient";
 
-export async function admitStudent() {
+type AdmitStudentInput = {
+  full_name: string;
+  email: string;
+  password: string;
+  phone: string | null;
+  dob: string | null;
+  address: string | null;
+  roll_number: string | null;
+  student_type: string;
+  section_id: number | null;
+  academic_year_id: number | null;
+  parent_name: string | null;
+  parent_phone: string | null;
+};
+
+export async function admitStudent(input: AdmitStudentInput) {
   const supabase = createServerAdminClient();
 
-  console.log("📝 Step 1: Creating a real Auth User...");
-  
-  const testEmail = `student_${Date.now()}@testschool.com`;
-  
+  console.log("📝 Step 1: Creating Auth User...");
+
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email: testEmail,
-    password: "Password123!",
+    email: input.email,
+    password: input.password,
     email_confirm: true,
   });
 
-  if (authError) {
-    console.error("❌ Auth Creation Error:", authError);
-    throw new Error(`Auth Error: ${authError.message}`);
-  }
+  if (authError) throw new Error(`Auth Error: ${authError.message}`);
 
-  const realUserId = authData.user.id;
-  console.log("✅ Auth User created with ID:", realUserId);
+  const userId = authData.user.id;
+  console.log("✅ Auth User created:", userId);
 
-  console.log("📝 Step 2: Updating the auto-generated Profile...");
+  console.log("📝 Step 2: Updating Profile...");
 
-  // 2. UPDATE instead of insert! The DB trigger already created the row.
-  const { data: profileData, error: profileError } = await supabase
+  const { error: profileError } = await supabase
     .from("profiles")
     .update({
-      full_name: "Test Student",
+      full_name: input.full_name,
+      phone: input.phone,
       role: "student",
     })
-    .eq("id", realUserId) // Target the row the trigger just created
-    .select();
+    .eq("id", userId);
 
-  if (profileError) {
-    console.error("❌ Profile Update Error:", profileError);
-    throw new Error(`Profile Error: ${profileError.message}`);
-  }
+  if (profileError) throw new Error(`Profile Error: ${profileError.message}`);
 
-  console.log("✅ Success! Student fully admitted:", profileData);
+  console.log("📝 Step 3: Creating Student record...");
 
-  return { 
-    success: true, 
-    data: profileData 
-  };
+  const { error: studentError } = await supabase
+    .from("students")
+    .insert({
+      profile_id: userId,
+      section_id: input.section_id,
+      academic_year_id: input.academic_year_id,
+      roll_number: input.roll_number,
+      dob: input.dob,
+      address: input.address,
+      parent_name: input.parent_name,
+      parent_phone: input.parent_phone,
+      student_type: input.student_type,
+    });
+
+  if (studentError) throw new Error(`Student Error: ${studentError.message}`);
+
+  console.log("✅ Student fully admitted!");
+  return { success: true };
 }
