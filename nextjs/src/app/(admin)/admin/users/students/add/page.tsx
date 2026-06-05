@@ -5,24 +5,16 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Loader2, UserPlus, AlertCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { admitStudent } from "@/services/students/admitStudent";
 import { createClient } from "@/lib/supabase/client";
 
-type Section = {
-  id: number;
-  name: string;
-  class_id: number;
-  classes: {
-    name: string;
-  } | null;
-};
+type Section = { id: number; display_name: string | null; grade: string; group_name: string };
 type AcademicYear = { id: number; name: string; is_current: boolean | null };
 
 export default function AddStudentPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [fetchingContext, setFetchingContext] = useState(true);
   const [error, setError] = useState("");
   const [sections, setSections] = useState<Section[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
@@ -44,37 +36,17 @@ export default function AddStudentPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const supabase = createClient();
-        const [sectionsRes, yearsRes] = await Promise.all([
-          supabase
-            .from("sections")
-            .select(`
-              id,
-              name,
-              class_id,
-              classes (
-                name
-              )
-            `),
-          supabase.from("academic_years").select("id, name, is_current"),
-        ]);
-
-        if (sectionsRes.data) {
-          console.log("SECTIONS DATA:", sectionsRes.data);
-          setSections(sectionsRes.data as Section[]);
-        }
-        if (yearsRes.data) {
-          const yearsData = yearsRes.data as AcademicYear[];
-          setAcademicYears(yearsData);
-          const current = yearsData.find((y) => y.is_current === true);
-          if (current) setForm((f) => ({ ...f, academic_year_id: String(current.id) }));
-        }
-      } catch (err) {
-        console.error("Data fetch error:", err);
-      } finally {
-        setFetchingContext(false);
-      }
+      const supabase = createClient();
+      const [{ data: secs }, { data: years }] = await Promise.all([
+        supabase.from("sections").select("id, display_name, grade, group_name").order("grade"),
+        supabase.from("academic_years").select("id, name, is_current").order("name"),
+      ]);
+      if (secs) setSections(secs as Section[]);
+      if (years) {
+  setAcademicYears(years as AcademicYear[]);
+  const current = (years as AcademicYear[]).find((y) => y.is_current);
+  if (current) setForm((f) => ({ ...f, academic_year_id: String(current.id) }));
+}
     };
     fetchData();
   }, []);
@@ -82,15 +54,10 @@ export default function AddStudentPage() {
   const set = (field: string, value: string) =>
     setForm((f) => ({ ...f, [field]: value }));
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError("");
     if (!form.full_name || !form.email || !form.password) {
-      setError("Name, email and password fields are strictly required.");
-      return;
-    }
-    if (!form.section_id) {
-      setError("Please assign a section to track this student.");
+      setError("Name, email and password are required.");
       return;
     }
     setLoading(true);
@@ -110,7 +77,6 @@ export default function AddStudentPage() {
         parent_phone: form.parent_phone || null,
       });
       router.push("/admin/users/students");
-      router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -118,134 +84,119 @@ export default function AddStudentPage() {
     }
   };
 
-  if (fetchingContext) {
-    return (
-      <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-500 font-medium animate-pulse">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-        Configuring lookup allocation tracks...
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" onClick={() => router.back()} className="h-9 w-9 border-slate-200" type="button">
-          <ArrowLeft className="h-4 w-4 text-slate-600" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Add Student</h1>
-          <p className="text-xs text-muted-foreground">Provision profile parameters and allocate class/section tracks.</p>
-        </div>
+    <div className="max-w-2xl flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Add Student</h1>
+        <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
       </div>
 
       {error && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-md text-xs font-semibold flex items-center gap-2.5 shadow-sm">
-          <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
-          <span>{error}</span>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+          {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="shadow-sm border border-slate-200 bg-white">
-          <CardHeader className="pb-3"><CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-wider">Account Credentials</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-500">Full Name *</label>
-              <Input placeholder="e.g. Ravi Kumar" value={form.full_name} onChange={(e) => set("full_name", e.target.value)} disabled={loading} />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500">Email Address *</label>
-                <Input type="email" placeholder="student@school.com" value={form.email} onChange={(e) => set("email", e.target.value)} disabled={loading} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500">Password *</label>
-                <Input type="password" placeholder="Min 6 characters" value={form.password} onChange={(e) => set("password", e.target.value)} disabled={loading} />
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-500">Contact Phone Number</label>
-              <Input placeholder="9876543210" value={form.phone} onChange={(e) => set("phone", e.target.value)} disabled={loading} />
-            </div>
-          </CardContent>
-        </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Account Details</CardTitle></CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Full Name *</label>
+            <Input placeholder="e.g. Ravi Kumar" value={form.full_name} onChange={(e) => set("full_name", e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Email *</label>
+            <Input type="email" placeholder="student@school.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Password *</label>
+            <Input type="password" placeholder="Min 6 characters" value={form.password} onChange={(e) => set("password", e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Phone</label>
+            <Input placeholder="9876543210" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="shadow-sm border border-slate-200 bg-white">
-          <CardHeader className="pb-3"><CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-wider">Academic & Roster Structure</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500">Academic Operational Session</label>
-                <select value={form.academic_year_id} onChange={(e) => set("academic_year_id", e.target.value)} disabled={loading} className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                  <option value="">Select Academic Year</option>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Academic Details</CardTitle></CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Academic Year</label>
+              <Select value={form.academic_year_id} onValueChange={(v) => set("academic_year_id", v)}>
+                <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
+                <SelectContent>
                   {academicYears.map((y) => (
-                    <option key={y.id} value={String(y.id)}>{y.name} {y.is_current ? "(Current)" : ""}</option>
+                    <SelectItem key={y.id} value={String(y.id)}>
+                      {y.name}{y.is_current ? " (Current)" : ""}
+                    </SelectItem>
                   ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500">Target Assigned Section *</label>
-                <select value={form.section_id} onChange={(e) => set("section_id", e.target.value)} disabled={loading} className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
-                  <option value="">Select section track</option>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Section</label>
+              <Select value={form.section_id} onValueChange={(v) => set("section_id", v)}>
+                <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
+                <SelectContent>
                   {sections.map((s) => (
-                    <option key={s.id} value={String(s.id)}>
-                      {s.classes?.name ? `${s.classes.name} - ${s.name}` : s.name}
-                    </option>
+                    <SelectItem key={s.id} value={String(s.id)}>
+                      {s.display_name || `${s.grade} - ${s.group_name}`}
+                    </SelectItem>
                   ))}
-                </select>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500">Roll Registry Value</label>
-                <Input placeholder="e.g. 2024001" value={form.roll_number} onChange={(e) => set("roll_number", e.target.value)} disabled={loading} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500">Enrollment Type Indicator</label>
-                <select value={form.student_type} onChange={(e) => set("student_type", e.target.value)} disabled={loading} className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
-                  <option value="regular">Regular Student</option>
-                  <option value="repeater">Repeater Track</option>
-                </select>
-              </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Roll Number</label>
+              <Input placeholder="e.g. 2024001" value={form.roll_number} onChange={(e) => set("roll_number", e.target.value)} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500">Date of Birth</label>
-                <Input type="date" value={form.dob} onChange={(e) => set("dob", e.target.value)} disabled={loading} className="block w-full" />
-              </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Student Type</label>
+              <Select value={form.student_type} onValueChange={(v) => set("student_type", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="lateral">Lateral</SelectItem>
+                  <SelectItem value="transfer">Transfer</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-500">Permanent Physical Address</label>
-              <Input placeholder="Full residential physical address details" value={form.address} onChange={(e) => set("address", e.target.value)} disabled={loading} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Date of Birth</label>
+              <Input type="date" value={form.dob} onChange={(e) => set("dob", e.target.value)} />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Address</label>
+            <Input placeholder="Full address" value={form.address} onChange={(e) => set("address", e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="shadow-sm border border-slate-200 bg-white">
-          <CardHeader className="pb-3"><CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-wider">Parent / Guardian Legal Index</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500">Parent / Guardian Full Name</label>
-                <Input placeholder="e.g. Suresh Kumar" value={form.parent_name} onChange={(e) => set("parent_name", e.target.value)} disabled={loading} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500">Emergency Contact Phone</label>
-                <Input placeholder="9876543210" value={form.parent_phone} onChange={(e) => set("parent_phone", e.target.value)} disabled={loading} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Parent / Guardian Details</CardTitle></CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Parent Name</label>
+            <Input placeholder="e.g. Suresh Kumar" value={form.parent_name} onChange={(e) => set("parent_name", e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Parent Phone</label>
+            <Input placeholder="9876543210" value={form.parent_phone} onChange={(e) => set("parent_phone", e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>Cancel</Button>
-          <Button type="submit" disabled={loading} className="min-w-[150px] bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-sm">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-            Admit Student
-          </Button>
-        </div>
-      </form>
+      <Button onClick={handleSubmit} disabled={loading} className="self-start px-8">
+        {loading ? "Admitting Student..." : "Admit Student"}
+      </Button>
     </div>
   );
 }

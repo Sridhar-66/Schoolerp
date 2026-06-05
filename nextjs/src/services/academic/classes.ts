@@ -78,19 +78,3 @@ export async function getClassDetails(classId: number) {
     sections,
   };
 }
-
-export async function addSection(classId: number, name: string) {
-  const supabase = createServerAdminClient();
-
-  const { data, error } = await (supabase as any)
-    .from("sections")
-    .insert({ class_id: classId, name })
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to provision new section: ${error.message}`);
-  }
-
-  return data;
-}
