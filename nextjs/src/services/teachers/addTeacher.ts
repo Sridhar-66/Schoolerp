@@ -2,52 +2,75 @@
 
 import { createServerAdminClient } from "@/lib/supabase/serverAdminClient";
 
-type AddTeacherInput = {
+export interface TeacherRecord {
+  id: number;
+  teacher_type: string | null;
+  joined_date: string | null;
+  employee_id: string | null;
+  profiles: {
+    id: string;
+    full_name: string | null;
+  } | null;
+}
+
+export interface AddTeacherInput {
   full_name: string;
   email: string;
   password: string;
-  phone: string | null;
-};
+  phone?: string | null;
+}
 
-export async function addTeacher(input: AddTeacherInput) {
+export async function getTeachers(): Promise<TeacherRecord[]> {
   const supabase = createServerAdminClient();
 
-  console.log("📝 Step 1: Creating Auth User for Teacher...");
+  const { data, error } = await (supabase as any)
+    .from("teachers")
+    .select(`
+      id,
+      teacher_type,
+      joined_date,
+      employee_id,
+      profiles!profile_id (
+        id,
+        full_name
+      )
+    `);
 
+  if (error) throw new Error(`Failed to read teachers directory: ${error.message}`);
+  return data || [];
+}
+
+export async function addTeacher(input: AddTeacherInput): Promise<void> {
+  const supabase = createServerAdminClient();
+
+  // 1. Create auth user
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email: input.email,
     password: input.password,
     email_confirm: true,
+    user_metadata: { full_name: input.full_name },
   });
 
-  if (authError) throw new Error(`Auth Error: ${authError.message}`);
+  if (authError) throw new Error(`Failed to create auth account: ${authError.message}`);
 
   const userId = authData.user.id;
-  console.log("✅ Auth User created:", userId);
 
-  console.log("📝 Step 2: Updating Profile Metadata...");
-
+  // 2. Upsert into profiles
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({
+    .upsert({
+      id: userId,
       full_name: input.full_name,
-      phone: input.phone,
       role: "teacher",
-    })
-    .eq("id", userId);
-
-  if (profileError) throw new Error(`Profile Error: ${profileError.message}`);
-
-  console.log("📝 Step 3: Creating Relational Teacher Record...");
-
-  const { error: teacherError } = await supabase
-    .from("teachers")
-    .insert({
-      profile_id: userId,
+      ...(input.phone ? { phone: input.phone } : {}),
     });
 
-  if (teacherError) throw new Error(`Teacher Error: ${teacherError.message}`);
+  if (profileError) throw new Error(`Failed to create profile: ${profileError.message}`);
 
-  console.log("✅ Teacher fully registered and onboarded!");
-  return { success: true };
+  // 3. Insert into teachers
+  const { error: teacherError } = await (supabase as any)
+    .from("teachers")
+    .insert({ profile_id: userId });
+
+  if (teacherError) throw new Error(`Failed to create teacher record: ${teacherError.message}`);
 }

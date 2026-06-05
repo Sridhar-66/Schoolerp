@@ -2,10 +2,10 @@
 
 import { createServerAdminClient } from "@/lib/supabase/serverAdminClient";
 
-type AdmitStudentInput = {
+export interface AdmitStudentPayload {
   full_name: string;
   email: string;
-  password: string;
+  password?: string;
   phone: string | null;
   dob: string | null;
   address: string | null;
@@ -15,55 +15,63 @@ type AdmitStudentInput = {
   academic_year_id: number | null;
   parent_name: string | null;
   parent_phone: string | null;
-};
+}
 
-export async function admitStudent(input: AdmitStudentInput) {
+export async function admitStudent(payload: AdmitStudentPayload) {
   const supabase = createServerAdminClient();
 
-  console.log("📝 Step 1: Creating Auth User...");
-
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email: input.email,
-    password: input.password,
+  // STEP 1: Create auth user first — this generates the UUID
+  const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+    email: payload.email,
+    password: payload.password,
     email_confirm: true,
+    user_metadata: { full_name: payload.full_name },
   });
 
-  if (authError) throw new Error(`Auth Error: ${authError.message}`);
+  if (authErr || !authData?.user) {
+    throw new Error(`Auth user creation failed: ${authErr?.message}`);
+  }
 
-  const userId = authData.user.id;
-  console.log("✅ Auth User created:", userId);
+  const userId = authData.user.id; // ← this is the UUID profiles.id needs
 
-  console.log("📝 Step 2: Updating Profile...");
+  // STEP 2: Insert into profiles using that UUID as the id
+  // STEP 2: Upsert profile (handles trigger pre-creating it)
+const { error: profileErr } = await (supabase as any)
+  .from("profiles")
+  .upsert([{
+    id: userId,
+    full_name: payload.full_name,
+    role: "student",
+    phone: payload.phone,
+  }], { onConflict: "id" });  // ← if it already exists, just update it
+  
+  if (profileErr) {
+    // Rollback: delete the auth user we just created
+    await supabase.auth.admin.deleteUser(userId);
+    throw new Error(`Profile initialization failed: ${profileErr.message}`);
+  }
 
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({
-      full_name: input.full_name,
-      phone: input.phone,
-      role: "student",
-    })
-    .eq("id", userId);
-
-  if (profileError) throw new Error(`Profile Error: ${profileError.message}`);
-
-  console.log("📝 Step 3: Creating Student record...");
-
-  const { error: studentError } = await supabase
+  // STEP 3: Insert into students table
+  const { data: studentRecord, error: studentErr } = await (supabase as any)
     .from("students")
-    .insert({
+    .insert([{
       profile_id: userId,
-      section_id: input.section_id,
-      academic_year_id: input.academic_year_id,
-      roll_number: input.roll_number,
-      dob: input.dob,
-      address: input.address,
-      parent_name: input.parent_name,
-      parent_phone: input.parent_phone,
-      student_type: input.student_type,
-    });
+      roll_number: payload.roll_number || null,
+      student_type: payload.student_type,
+      parent_name: payload.parent_name || null,
+      parent_phone: payload.parent_phone || null,
+      section_id: payload.section_id,
+      academic_year_id: payload.academic_year_id,
+    }])
+    .select()
+    .single();
 
-  if (studentError) throw new Error(`Student Error: ${studentError.message}`);
+  if (studentErr) {
+    // Rollback both auth user and profile
+    await (supabase as any).from("profiles").delete().eq("id", userId);
+    await supabase.auth.admin.deleteUser(userId);
+    throw new Error(`Student record creation failed: ${studentErr.message}`);
+  }
 
-  console.log("✅ Student fully admitted!");
-  return { success: true };
+  return studentRecord;
 }
