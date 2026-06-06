@@ -1,0 +1,90 @@
+SCHOOL ERP - CONTRIBUTION GUIDE
+1. PROJECT OVERVIEW
+
+This is a modular School ERP system. Each feature is a separate module that integrates into a shared platform.
+
+Core modules:
+
+Students
+Attendance
+Fees
+Timetable
+Assignments
+
+Each module is independent but uses shared database entities.
+
+2. REPOSITORY RULES
+
+Branches:
+
+main → production (stable only)
+dev → integration branch (merged features only)
+feature/* → individual work branches
+
+You are NOT allowed to push directly to main or dev.
+
+3. WORKFLOW
+
+Step 1: Switch to your feature branch
+
+git switch feature/<module-name>
+
+Step 2: Make changes in code
+
+Step 3: Check changes
+
+git status
+
+Step 4: Stage changes
+
+git add .
+
+Step 5: Commit changes
+
+git commit -m "clear message describing change"
+
+Step 6: Push changes
+
+git push origin feature/<module-name>
+4. MODULE OWNERSHIP
+
+Each developer works on only one module at a time.
+
+Examples:
+
+Student module → student UI + logic
+Attendance module → marking + reports
+Fees module → payments + structure
+
+Do NOT mix modules in one branch.
+
+5. DEFINITION OF DONE
+
+A feature is complete only when:
+
+Code works without errors
+Connected to Supabase backend
+Tested locally
+Pushed to feature branch
+Pull request raised to dev
+6. PULL REQUEST RULES
+
+All completed work must go through:
+
+feature/* → dev
+
+PR must include:
+
+What was built
+What was changed
+How to test it
+7. IMPORTANT RULES
+No direct commits to main or dev
+One feature per branch
+Small and clean commits only
+Do not break existing modules
+Database changes must be coordinated
+8. FINAL NOTE
+
+This is a modular system. Think in systems, not pages.
+Each module must work independently and integrate cleanly into the platform.
