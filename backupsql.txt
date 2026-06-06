@@ -1,0 +1,240 @@
+table_name
+academic_years
+announcements
+assignment_submissions
+assignments
+attendance
+classes
+exams
+fee_payments
+fees_structure
+leave_requests
+marks
+materials
+message_thread_participants
+message_threads
+messages
+profiles
+section_teachers
+sections
+students
+subjects
+teacher_subjects
+teacher_substitutions
+teachers
+timetable||
+table_name,column_name,data_type,is_nullable
+academic_years,id,integer,NO
+academic_years,name,text,NO
+academic_years,start_date,date,NO
+academic_years,end_date,date,NO
+academic_years,is_current,boolean,YES
+announcements,id,integer,NO
+announcements,title,text,NO
+announcements,body,text,NO
+announcements,target,text,YES
+announcements,created_by,uuid,YES
+announcements,created_at,timestamp with time zone,YES
+assignment_submissions,id,integer,NO
+assignment_submissions,assignment_id,integer,YES
+assignment_submissions,student_id,integer,YES
+assignment_submissions,submitted_at,timestamp with time zone,YES
+assignment_submissions,file_url,text,YES
+assignment_submissions,grade,text,YES
+assignment_submissions,feedback,text,YES
+assignments,id,integer,NO
+assignments,title,text,NO
+assignments,description,text,YES
+assignments,subject_id,integer,YES
+assignments,section_id,integer,YES
+assignments,teacher_id,integer,YES
+assignments,due_date,timestamp with time zone,YES
+assignments,created_at,timestamp with time zone,YES
+attendance,id,bigint,NO
+attendance,student_id,bigint,NO
+attendance,timetable_id,bigint,NO
+attendance,date,date,NO
+attendance,status,text,NO
+attendance,remarks,text,YES
+attendance,updated_at,timestamp with time zone,YES
+classes,id,bigint,NO
+classes,name,text,NO
+classes,created_at,timestamp with time zone,YES
+exams,id,integer,NO
+exams,name,text,NO
+exams,subject_id,integer,YES
+exams,section_id,integer,YES
+exams,academic_year_id,integer,YES
+exams,exam_date,date,YES
+exams,max_marks,integer,NO
+exams,created_by,uuid,YES
+fee_payments,id,integer,NO
+fee_payments,student_id,integer,YES
+fee_payments,fees_structure_id,integer,YES
+fee_payments,amount_paid,numeric,NO
+fee_payments,payment_status,text,YES
+fee_payments,paid_at,timestamp with time zone,YES
+fee_payments,collected_by,uuid,YES
+fee_payments,remarks,text,YES
+fee_payments,student_name,text,NO
+fee_payments,roll_no,text,NO
+fee_payments,fee_structure_id,bigint,YES
+fee_payments,status,text,NO
+fee_payments,payment_method,text,NO
+fee_payments,updated_at,timestamp with time zone,NO
+fees_structure,id,integer,NO
+fees_structure,name,text,NO
+fees_structure,amount,numeric,NO
+fees_structure,academic_year_id,integer,YES
+fees_structure,applicable_to,text,YES
+fees_structure,due_date,date,YES
+leave_requests,id,integer,NO
+leave_requests,student_id,integer,YES
+leave_requests,from_date,date,NO
+leave_requests,to_date,date,NO
+leave_requests,reason,text,YES
+leave_requests,status,text,YES
+leave_requests,reviewed_by,uuid,YES
+leave_requests,reviewed_at,timestamp with time zone,YES
+leave_requests,created_at,timestamp with time zone,YES
+marks,id,integer,NO
+marks,exam_id,integer,YES
+marks,student_id,integer,YES
+marks,marks_obtained,numeric,YES
+marks,remarks,text,YES
+marks,entered_by,integer,YES
+marks,entered_at,timestamp with time zone,YES
+materials,id,integer,NO
+materials,title,text,NO
+materials,description,text,YES
+materials,file_url,text,YES
+materials,subject_id,integer,YES
+materials,section_id,integer,YES
+materials,uploaded_by,integer,YES
+materials,uploaded_at,timestamp with time zone,YES
+message_thread_participants,thread_id,integer,NO
+message_thread_participants,profile_id,uuid,NO
+message_threads,id,integer,NO
+message_threads,subject,text,YES
+message_threads,created_at,timestamp with time zone,YES
+messages,id,integer,NO
+messages,thread_id,integer,YES
+messages,sender_id,uuid,YES
+messages,body,text,NO
+messages,sent_at,timestamp with time zone,YES
+profiles,id,uuid,NO
+profiles,full_name,text,NO||table_name,column_name,data_type,is_nullable
+academic_years,id,integer,NO
+academic_years,name,text,NO
+academic_years,start_date,date,NO
+academic_years,end_date,date,NO
+academic_years,is_current,boolean,YES
+announcements,id,integer,NO
+announcements,title,text,NO
+announcements,body,text,NO
+announcements,target,text,YES
+announcements,created_by,uuid,YES
+announcements,created_at,timestamp with time zone,YES
+assignment_submissions,id,integer,NO
+assignment_submissions,assignment_id,integer,YES
+assignment_submissions,student_id,integer,YES
+assignment_submissions,submitted_at,timestamp with time zone,YES
+assignment_submissions,file_url,text,YES
+assignment_submissions,grade,text,YES
+assignment_submissions,feedback,text,YES
+assignments,id,integer,NO
+assignments,title,text,NO
+assignments,description,text,YES
+assignments,subject_id,integer,YES
+assignments,section_id,integer,YES
+assignments,teacher_id,integer,YES
+assignments,due_date,timestamp with time zone,YES
+assignments,created_at,timestamp with time zone,YES
+attendance,id,bigint,NO
+attendance,student_id,bigint,NO
+attendance,timetable_id,bigint,NO
+attendance,date,date,NO
+attendance,status,text,NO
+attendance,remarks,text,YES
+attendance,updated_at,timestamp with time zone,YES
+classes,id,bigint,NO
+classes,name,text,NO
+classes,created_at,timestamp with time zone,YES
+exams,id,integer,NO
+exams,name,text,NO
+exams,subject_id,integer,YES
+exams,section_id,integer,YES
+exams,academic_year_id,integer,YES
+exams,exam_date,date,YES
+exams,max_marks,integer,NO
+exams,created_by,uuid,YES
+fee_payments,id,integer,NO
+fee_payments,student_id,integer,YES
+fee_payments,fees_structure_id,integer,YES
+fee_payments,amount_paid,numeric,NO
+fee_payments,payment_status,text,YES
+fee_payments,paid_at,timestamp with time zone,YES
+fee_payments,collected_by,uuid,YES
+fee_payments,remarks,text,YES
+fee_payments,student_name,text,NO
+fee_payments,roll_no,text,NO
+fee_payments,fee_structure_id,bigint,YES
+fee_payments,status,text,NO
+fee_payments,payment_method,text,NO
+fee_payments,updated_at,timestamp with time zone,NO
+fees_structure,id,integer,NO
+fees_structure,name,text,NO
+fees_structure,amount,numeric,NO
+fees_structure,academic_year_id,integer,YES
+fees_structure,applicable_to,text,YES
+fees_structure,due_date,date,YES
+leave_requests,id,integer,NO
+leave_requests,student_id,integer,YES
+leave_requests,from_date,date,NO
+leave_requests,to_date,date,NO
+leave_requests,reason,text,YES
+leave_requests,status,text,YES
+leave_requests,reviewed_by,uuid,YES
+leave_requests,reviewed_at,timestamp with time zone,YES
+leave_requests,created_at,timestamp with time zone,YES
+marks,id,integer,NO
+marks,exam_id,integer,YES
+marks,student_id,integer,YES
+marks,marks_obtained,numeric,YES
+marks,remarks,text,YES
+marks,entered_by,integer,YES
+marks,entered_at,timestamp with time zone,YES
+materials,id,integer,NO
+materials,title,text,NO
+materials,description,text,YES
+materials,file_url,text,YES
+materials,subject_id,integer,YES
+materials,section_id,integer,YES
+materials,uploaded_by,integer,YES
+materials,uploaded_at,timestamp with time zone,YES
+message_thread_participants,thread_id,integer,NO
+message_thread_participants,profile_id,uuid,NO
+message_threads,id,integer,NO
+message_threads,subject,text,YES
+message_threads,created_at,timestamp with time zone,YES
+messages,id,integer,NO
+messages,thread_id,integer,YES
+messages,sender_id,uuid,YES
+messages,body,text,NO
+messages,sent_at,timestamp with time zone,YES
+profiles,id,uuid,NO
+profiles,full_name,text,NO||id,profile_id,roll_number,section_id,student_type,parent_name,parent_phone,dob,address,academic_year_id,class_id
+1,cdbca492-40cf-44d5-93b4-1cdc952c5dce,949,6,regular,appayama,389024823,2024-06-10,null,2,4
+2,da95c2d2-800a-40de-9eee-b980c924542a,123454321,5,longterm,kannaniadu,098765432,2026-06-23,null,2,3
+4,fe9624c0-8bca-4ce5-81f4-0df362c47f7c,279,1,regular,parent name fof jrmpcsecastudent,9327,2022-06-06,address of jrmpcsecastudent,2,1|| id,profile_id,employee_id,teacher_type,joined_date
+1,9c80512a-9fed-4901-a9c2-7fb65b62e950,null,subject,null
+3,9f5cb900-3b53-4c7d-beaf-c0a1db29da48,null,subject,null
+6,8a47ca48-9ddf-4b67-801f-3e220db8f7b9,null,subject,null
+7,9c33979c-4cbc-4358-a01a-ecec8dec792a,123,subject,2021-01-22
+8,eae74a63-aac5-4bde-9917-aef85b68f456,null,subject,null|| id,section_id,period_number,subject_id,teacher_id,start_time,end_time,academic_year_id,created_at,date
+2,1,1,4,1,09:00:00,10:00:00,2,2026-06-06 15:23:38.124043+00,null
+4,8,1,5,6,06:00:00,07:00:00,2,2026-06-06 15:31:08.377759+00,null
+5,3,1,4,1,07:00:00,07:00:00,2,2026-06-06 15:31:44.008165+00,null
+6,7,1,5,6,06:30:00,07:00:00,2,2026-06-06 15:32:42.904773+00,null
+7,2,1,5,3,06:30:00,06:30:00,2,2026-06-06 15:40:08.962161+00,2026-06-07
+8,8,5,5,7,07:30:00,09:00:00,2,2026-06-06 15:41:19.506856+00,2026-06-07
