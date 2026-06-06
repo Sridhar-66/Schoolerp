@@ -11,6 +11,7 @@ type AdmitStudentInput = {
   address: string | null;
   roll_number: string | null;
   student_type: string;
+  class_id: number | null;       // ← added
   section_id: number | null;
   academic_year_id: number | null;
   parent_name: string | null;
@@ -20,38 +21,26 @@ type AdmitStudentInput = {
 export async function admitStudent(input: AdmitStudentInput) {
   const supabase = createServerAdminClient();
 
-  console.log("📝 Step 1: Creating Auth User...");
-
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email: input.email,
     password: input.password,
     email_confirm: true,
   });
-
   if (authError) throw new Error(`Auth Error: ${authError.message}`);
 
   const userId = authData.user.id;
-  console.log("✅ Auth User created:", userId);
-
-  console.log("📝 Step 2: Updating Profile...");
 
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({
-      full_name: input.full_name,
-      phone: input.phone,
-      role: "student",
-    })
+    .update({ full_name: input.full_name, phone: input.phone, role: "student" })
     .eq("id", userId);
-
   if (profileError) throw new Error(`Profile Error: ${profileError.message}`);
-
-  console.log("📝 Step 3: Creating Student record...");
 
   const { error: studentError } = await supabase
     .from("students")
     .insert({
       profile_id: userId,
+      class_id: input.class_id,       // ← added
       section_id: input.section_id,
       academic_year_id: input.academic_year_id,
       roll_number: input.roll_number,
@@ -61,9 +50,7 @@ export async function admitStudent(input: AdmitStudentInput) {
       parent_phone: input.parent_phone,
       student_type: input.student_type,
     });
-
   if (studentError) throw new Error(`Student Error: ${studentError.message}`);
 
-  console.log("✅ Student fully admitted!");
   return { success: true };
 }

@@ -24,21 +24,22 @@ const links = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-56 border-r bg-muted/40 flex flex-col p-4 gap-1">
+    <div className="flex h-screen overflow-hidden">
+      <aside className="w-56 border-r bg-muted/40 flex flex-col p-4 gap-1 overflow-y-auto shrink-0">
         <p className="font-bold text-lg mb-4">ERP Admin</p>
         {links.map(l => (
           <Link key={l.href} href={l.href} className="text-sm px-2 py-1 rounded hover:bg-muted">{l.label}</Link>
         ))}
       </aside>
-      <div className="flex flex-col flex-1">
-        <header className="h-12 border-b flex items-center justify-between px-6">
+      <div className="flex flex-col flex-1 min-w-0">
+        <header className="h-12 border-b flex items-center justify-between px-6 shrink-0">
           <span className="font-medium">School ERP</span>
           <div className="w-8 h-8 rounded-full bg-muted" />
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
       </div>
     </div>
   )
 }
-
