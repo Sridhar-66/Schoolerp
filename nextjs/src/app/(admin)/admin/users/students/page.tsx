@@ -12,6 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { createClient } from "@/lib/supabase/client";
 
 type Student = {
@@ -38,7 +49,6 @@ export default function StudentsPage() {
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("");
 
-  // Failsafe extractor to process structural array vs flat object conversions safely
   const extractNestedData = (relation: any, key: string): string | null => {
     if (!relation) return null;
     if (Array.isArray(relation)) {
@@ -85,6 +95,24 @@ export default function StudentsPage() {
     fetchData();
   }, []);
 
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await fetch(`/api/admin/users?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setStudents((prev) => prev.filter((student) => student.id !== id));
+      } else {
+        const errData = await res.json();
+        alert(`Deletion failed: ${errData.error || 'Server error'}`);
+      }
+    } catch (err) {
+      console.error("Error executing delete operations:", err);
+      alert("Network error: Could not reach target deletion endpoint.");
+    }
+  };
+
   const filteredStudents = students.filter((student) => {
     const rawFullName = extractNestedData(student.profiles, "full_name") ?? "";
     const nameMatch = rawFullName.toLowerCase().includes(search.toLowerCase());
@@ -97,7 +125,7 @@ export default function StudentsPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Students Matrix</h1>
         <Button asChild>
@@ -138,7 +166,7 @@ export default function StudentsPage() {
               <TableHead>Roll No</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Phone</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              <TableHead className="text-right pr-6 w-[260px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -173,10 +201,45 @@ export default function StudentsPage() {
                       {student.student_type || "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{phoneNo ?? "—"}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-right space-x-2 pr-6">
+                      
+                      {/* Action 1: View */}
                       <Button variant="outline" size="sm" asChild className="font-medium shadow-2xs">
                         <Link href={`/admin/users/students/${student.id}`}>View</Link>
                       </Button>
+
+                      {/* Action 2: Edit */}
+                      <Button variant="secondary" size="sm" asChild className="font-medium shadow-2xs">
+                        <Link href={`/admin/users/students/${student.id}/edit`}>Edit</Link>
+                      </Button>
+
+                      {/* Action 3: Destructive Delete Modal */}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="font-medium shadow-2xs">
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="text-left">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This permanently deletes the student profile for{" "}
+                              <span className="font-semibold text-foreground">{studentName || "this student"}</span> and removes all associated data from the grid.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(student.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Confirm Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
                     </TableCell>
                   </TableRow>
                 );
