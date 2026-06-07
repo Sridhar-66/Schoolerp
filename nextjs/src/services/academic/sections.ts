@@ -1,11 +1,11 @@
 ﻿"use server";
-
 import { createServerAdminClient } from "@/lib/supabase/serverAdminClient";
 
 export interface SectionWithClass {
   id: number;
   name: string;
   class_id: number;
+  created_at: string | null;
   classes: {
     name: string;
   } | null;
@@ -16,7 +16,7 @@ export async function getSections(): Promise<SectionWithClass[]> {
 
   const { data, error } = await (supabase as any)
     .from("sections")
-    .select("id, name, class_id, classes(name)")
+    .select("id, name, class_id, created_at, classes(name)")
     .order("name", { ascending: true });
 
   if (error) {

@@ -1,243 +1,159 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { admitStudent } from "@/services/students/admitStudent";
-import { createClient } from "@/lib/supabase/client";
+import * as React from "react";
+import * as SelectPrimitive from "@radix-ui/react-select";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
-type Class = { id: number; name: string };
-type Section = { id: number; name: string; class_id: number };
-type AcademicYear = { id: number; name: string; is_current: boolean | null };
+import { cn } from "@/lib/utils";
 
-const selectClass = "w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+const Select = SelectPrimitive.Root;
 
-export default function AddStudentPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [allSections, setAllSections] = useState<Section[]>([]);
-  const [filteredSections, setFilteredSections] = useState<Section[]>([]);
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+const SelectGroup = SelectPrimitive.Group;
 
-  const [form, setForm] = useState({
-    full_name: "",
-    email: "",
-    password: "",
-    phone: "",
-    dob: "",
-    address: "",
-    roll_number: "",
-    student_type: "regular",
-    class_id: "",
-    section_id: "",
-    academic_year_id: "",
-    parent_name: "",
-    parent_phone: "",
-  });
+const SelectValue = SelectPrimitive.Value;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const supabase = createClient();
-      const [{ data: cls }, { data: secs }, { data: years }] = await Promise.all([
-        supabase.from("classes").select("id, name").order("name"),
-        supabase.from("sections").select("id, name, class_id").order("name"),
-        supabase.from("academic_years").select("id, name, is_current").order("name"),
-      ]);
-      if (cls) setClasses(cls as Class[]);
-      if (secs) setAllSections(secs as Section[]);
-      if (years) {
-        setAcademicYears(years as AcademicYear[]);
-        const current = (years as AcademicYear[]).find((y) => y.is_current);
-        if (current) setForm((f) => ({ ...f, academic_year_id: String(current.id) }));
-      }
-    };
-    fetchData();
-  }, []);
+const SelectTrigger = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
+>(({ className, children, ...props }, ref) => (
+  <SelectPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      className
+    )}
+    {...props}
+  >
+    {children}
+    <SelectPrimitive.Icon asChild>
+      <ChevronDown className="h-4 w-4 opacity-50" />
+    </SelectPrimitive.Icon>
+  </SelectPrimitive.Trigger>
+));
+SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
-  const set = (field: string, value: string) => {
-    setForm((f) => {
-      const updated = { ...f, [field]: value };
-      if (field === "class_id") updated.section_id = "";
-      return updated;
-    });
-  };
+const SelectScrollUpButton = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollUpButton
+    ref={ref}
+    className={cn(
+      "flex cursor-default items-center justify-center py-1",
+      className
+    )}
+    {...props}
+  >
+    <ChevronUp className="h-4 w-4" />
+  </SelectPrimitive.ScrollUpButton>
+));
+SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
 
-  useEffect(() => {
-    if (form.class_id) {
-      setFilteredSections(allSections.filter((s) => s.class_id === Number(form.class_id)));
-    } else {
-      setFilteredSections([]);
-    }
-  }, [form.class_id, allSections]);
+const SelectScrollDownButton = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollDownButton
+    ref={ref}
+    className={cn(
+      "flex cursor-default items-center justify-center py-1",
+      className
+    )}
+    {...props}
+  >
+    <ChevronDown className="h-4 w-4" />
+  </SelectPrimitive.ScrollDownButton>
+));
+SelectScrollDownButton.displayName =
+  SelectPrimitive.ScrollDownButton.displayName;
 
-  const handleSubmit = async () => {
-    setError("");
-    if (!form.full_name || !form.email || !form.password) {
-      setError("Name, email and password are required.");
-      return;
-    }
-    setLoading(true);
-    try {
-      await admitStudent({
-        full_name: form.full_name,
-        email: form.email,
-        password: form.password,
-        phone: form.phone || null,
-        dob: form.dob || null,
-        address: form.address || null,
-        roll_number: form.roll_number || null,
-        student_type: form.student_type,
-        class_id: form.class_id ? Number(form.class_id) : null,
-        section_id: form.section_id ? Number(form.section_id) : null,
-        academic_year_id: form.academic_year_id ? Number(form.academic_year_id) : null,
-        parent_name: form.parent_name || null,
-        parent_phone: form.parent_phone || null,
-      });
-      router.push("/admin/users/students");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="max-w-2xl flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Add Student</h1>
-        <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-          {error}
-        </div>
+const SelectContent = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+>(({ className, children, position = "popper", ...props }, ref) => (
+  <SelectPrimitive.Portal>
+    <SelectPrimitive.Content
+      ref={ref}
+      className={cn(
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        position === "popper" &&
+          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+        className
       )}
+      position={position}
+      {...props}
+    >
+      <SelectScrollUpButton />
+      <SelectPrimitive.Viewport
+        className={cn(
+          "p-1",
+          position === "popper" &&
+            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+        )}
+      >
+        {children}
+      </SelectPrimitive.Viewport>
+      <SelectScrollDownButton />
+    </SelectPrimitive.Content>
+  </SelectPrimitive.Portal>
+));
+SelectContent.displayName = SelectPrimitive.Content.displayName;
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Account Details</CardTitle></CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Full Name *</label>
-            <Input placeholder="e.g. Ravi Kumar" value={form.full_name} onChange={(e) => set("full_name", e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Email *</label>
-            <Input type="email" placeholder="student@school.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Password *</label>
-            <Input type="password" placeholder="Min 6 characters" value={form.password} onChange={(e) => set("password", e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Phone</label>
-            <Input placeholder="9876543210" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
-          </div>
-        </CardContent>
-      </Card>
+const SelectLabel = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Label>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Label
+    ref={ref}
+    className={cn("px-2 py-1.5 text-sm font-semibold", className)}
+    {...props}
+  />
+));
+SelectLabel.displayName = SelectPrimitive.Label.displayName;
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Academic Details</CardTitle></CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Academic Year</label>
-              <select
-                className={selectClass}
-                value={form.academic_year_id}
-                onChange={(e) => set("academic_year_id", e.target.value)}
-              >
-                <option value="">Select year</option>
-                {academicYears.map((y) => (
-                  <option key={y.id} value={String(y.id)}>
-                    {y.name}{y.is_current ? " (Current)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Roll Number</label>
-              <Input placeholder="e.g. 2024001" value={form.roll_number} onChange={(e) => set("roll_number", e.target.value)} />
-            </div>
-          </div>
+const SelectItem = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Item>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
+>(({ className, children, ...props }, ref) => (
+  <SelectPrimitive.Item
+    ref={ref}
+    className={cn(
+      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      className
+    )}
+    {...props}
+  >
+    <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+      <SelectPrimitive.ItemIndicator>
+        <Check className="h-4 w-4" />
+      </SelectPrimitive.ItemIndicator>
+    </span>
+    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+  </SelectPrimitive.Item>
+));
+SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Class</label>
-              <select
-                className={selectClass}
-                value={form.class_id}
-                onChange={(e) => set("class_id", e.target.value)}
-              >
-                <option value="">Select class</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={String(c.id)}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Section</label>
-              <select
-                className={selectClass}
-                value={form.section_id}
-                onChange={(e) => set("section_id", e.target.value)}
-                disabled={!form.class_id}
-              >
-                <option value="">{form.class_id ? "Select section" : "Select class first"}</option>
-                {filteredSections.map((s) => (
-                  <option key={s.id} value={String(s.id)}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+const SelectSeparator = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Separator>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Separator
+    ref={ref}
+    className={cn("-mx-1 my-1 h-px bg-muted", className)}
+    {...props}
+  />
+));
+SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Student Type</label>
-              <select
-                className={selectClass}
-                value={form.student_type}
-                onChange={(e) => set("student_type", e.target.value)}
-              >
-                <option value="regular">Regular</option>
-                <option value="lateral">Lateral</option>
-                <option value="transfer">Transfer</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Date of Birth</label>
-              <Input type="date" value={form.dob} onChange={(e) => set("dob", e.target.value)} />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Address</label>
-            <Input placeholder="Full address" value={form.address} onChange={(e) => set("address", e.target.value)} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-base">Parent / Guardian Details</CardTitle></CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Parent Name</label>
-            <Input placeholder="e.g. Suresh Kumar" value={form.parent_name} onChange={(e) => set("parent_name", e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Parent Phone</label>
-            <Input placeholder="9876543210" value={form.parent_phone} onChange={(e) => set("parent_phone", e.target.value)} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Button onClick={handleSubmit} disabled={loading} className="self-start px-8">
-        {loading ? "Admitting Student..." : "Admit Student"}
-      </Button>
-    </div>
-  );
-}
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+  SelectScrollUpButton,
+  SelectScrollDownButton,
+};

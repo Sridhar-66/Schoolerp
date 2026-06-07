@@ -9,6 +9,16 @@ export interface SectionOption {
   class_name: string;
 }
 
+export interface TimetableSlot {
+  id: number;
+  period_number: number;
+  date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  subject_id: number | null;
+  subject_name: string | null;
+}
+
 export interface StudentAttendanceRow {
   student_id: number;
   roll_number: string | null;
@@ -19,7 +29,8 @@ export interface StudentAttendanceRow {
 
 export interface SaveAttendancePayload {
   section_id: number;
-  date: string; // ISO date string e.g. "2025-06-01"
+  timetable_id: number;
+  date: string;
   records: { student_id: number; status: "present" | "absent" }[];
 }
 
@@ -44,15 +55,43 @@ export async function getSections(): Promise<SectionOption[]> {
   }));
 }
 
-// ── Students + existing attendance for a given section + date ─────────────────
+// ── Timetable slots for a section + date ─────────────────────────────────────
+
+export async function getTimetableSlots(
+  section_id: number,
+  date: string
+): Promise<TimetableSlot[]> {
+  const supabase = createServerAdminClient();
+
+  const { data, error } = await (supabase as any)
+    .from("timetable")
+    .select("id, period_number, date, start_time, end_time, subject_id, subjects(name)")
+    .eq("section_id", section_id)
+    .eq("date", date)
+    .order("period_number", { ascending: true });
+
+  if (error) throw new Error(`Failed to load timetable: ${error.message}`);
+
+  return (data || []).map((t: any) => ({
+    id: t.id,
+    period_number: t.period_number,
+    date: t.date ?? null,
+    start_time: t.start_time ?? null,
+    end_time: t.end_time ?? null,
+    subject_id: t.subject_id ?? null,
+    subject_name: t.subjects?.name ?? null,
+  }));
+}
+
+// ── Students + existing attendance ────────────────────────────────────────────
 
 export async function getStudentsWithAttendance(
   section_id: number,
+  timetable_id: number,
   date: string
 ): Promise<StudentAttendanceRow[]> {
   const supabase = createServerAdminClient();
 
-  // Fetch students in section, joining profile for name
   const { data: students, error: studentsError } = await (supabase as any)
     .from("students")
     .select("id, roll_number, profiles(full_name)")
@@ -66,20 +105,17 @@ export async function getStudentsWithAttendance(
 
   const studentIds = (students as any[]).map((s: any) => s.id);
 
-  // Fetch existing attendance records for this section + date
   const { data: attendanceRecords, error: attError } = await (supabase as any)
     .from("attendance")
     .select("id, student_id, status")
     .in("student_id", studentIds)
+    .eq("timetable_id", timetable_id)
     .eq("date", date);
 
   if (attError)
     throw new Error(`Failed to load attendance: ${attError.message}`);
 
-  const attendanceMap = new Map<
-    number,
-    { id: number; status: string }
-  >();
+  const attendanceMap = new Map<number, { id: number; status: string }>();
   for (const rec of attendanceRecords || []) {
     attendanceMap.set(rec.student_id, { id: rec.id, status: rec.status });
   }
@@ -96,28 +132,27 @@ export async function getStudentsWithAttendance(
   });
 }
 
-// ── Save (upsert) attendance ───────────────────────────────────────────────────
+// ── Save (upsert) attendance ──────────────────────────────────────────────────
 
 export async function saveAttendance(
   payload: SaveAttendancePayload
 ): Promise<void> {
   const supabase = createServerAdminClient();
-  const { section_id, date, records } = payload;
+  const { timetable_id, date, records } = payload;
 
   if (records.length === 0) return;
 
-  // Build upsert rows — use student_id + date as natural conflict key
   const rows = records.map((r) => ({
     student_id: r.student_id,
+    timetable_id,
     date,
     status: r.status,
     updated_at: new Date().toISOString(),
   }));
 
-  // Upsert on (student_id, date) — requires a unique constraint on those columns
   const { error } = await (supabase as any)
     .from("attendance")
-    .upsert(rows, { onConflict: "student_id,date" });
+    .upsert(rows, { onConflict: "student_id,timetable_id,date" });
 
   if (error) throw new Error(`Failed to save attendance: ${error.message}`);
 }

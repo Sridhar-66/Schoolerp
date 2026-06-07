@@ -16,10 +16,6 @@ const links = [
   { label: "Attendance", href: "/admin/attendance" },
   { label: "Report Cards", href: "/admin/report-cards" },
   { label: "Announcements", href: "/admin/announcements" },
-  { label: "Analytics", href: "/admin/analytics" },
-  { label: "Grading", href: "/admin/settings/grading" },
-  { label: "Calendar", href: "/admin/settings/calendar" },
-  { label: "Holidays", href: "/admin/settings/holidays" },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -28,7 +24,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-56 border-r bg-muted/40 flex flex-col p-4 gap-1 overflow-y-auto shrink-0">
         <p className="font-bold text-lg mb-4">ERP Admin</p>
         {links.map(l => (
-          <Link key={l.href} href={l.href} className="text-sm px-2 py-1 rounded hover:bg-muted">{l.label}</Link>
+          <Link key={l.href} href={l.href} className="text-sm px-2 py-1 rounded hover:bg-muted">
+            {l.label}
+          </Link>
         ))}
       </aside>
       <div className="flex flex-col flex-1 min-w-0">
