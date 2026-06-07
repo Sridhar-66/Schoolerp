@@ -3,15 +3,14 @@
 const links = [
   { label: "Dashboard", href: "/student/dashboard" },
   { label: "Attendance", href: "/student/attendance" },
+  { label: "Examinations", href: "/student/examinations" },
   { label: "Results", href: "/student/results" },
-  { label: "Assignments", href: "/student/assignments" },
-  { label: "Timetable", href: "/student/timetable" },
+  { label: "Timetable", href: "/student/timetable" }, // Removed Assignments right above this
   { label: "Announcements", href: "/student/announcements" },
   { label: "Fees", href: "/student/fees" },
   { label: "Materials", href: "/student/materials" },
   { label: "Leave", href: "/student/leave" },
-  { label: "Messages", href: "/student/messages" },
-  { label: "Profile", href: "/student/profile" }, // Added Profile navigation link
+  { label: "Profile", href: "/student/profile" },
 ]
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
