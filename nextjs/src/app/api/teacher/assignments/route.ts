@@ -4,122 +4,63 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const teacher_id = searchParams.get("teacher_id");
-    
-    if (!teacher_id) {
-      return NextResponse.json({ error: "teacher_id is required" }, { status: 400 });
+    const teacherId = searchParams.get("teacher_id");
+    const date = searchParams.get("date");
+
+    if (!teacherId) {
+      return NextResponse.json(
+        { error: "teacher_id parameter is required" },
+        { status: 400 }
+      );
     }
 
+    // Initialize using your template's custom SaaS client pattern
     const sassClient = await createSSRSassClient();
     const supabase = sassClient.getSupabaseClient();
 
-    // Fetch assignments with aliased joins and count aggregations
-    const { data, error } = await (supabase.from('assignments') as any)
+    // Fetch timetable records matching the specific teacher ID
+    let query = (supabase.from("timetable") as any)
       .select(`
-        *,
-        subject:subjects (name),
-        section:sections (name),
-        assignment_questions (count)
+        id,
+        period_number,
+        start_time,
+        end_time,
+        date,
+        academic_year_id,
+        subject_id,
+        subjects:subjects (
+          name,
+          code
+        ),
+        sections:sections (
+          name
+        )
       `)
-      .eq('teacher_id', parseInt(teacher_id))
-      .order('created_at', { ascending: false });
+      .eq("teacher_id", parseInt(teacherId));
 
-    if (error) throw error;
-
-    // Map through data to format potential null values safely for the client UI
-    const formattedData = data?.map((assignment: any) => ({
-      ...assignment,
-      // Ensure the keys match what your page.tsx frontend is expecting
-      subject: assignment.subject ? assignment.subject : null,
-      section: assignment.section ? assignment.section : null,
-      // Pull count out of the aggregated array structure safely
-      question_count: assignment.assignment_questions?.[0]?.count || 0
-    }));
-
-    return NextResponse.json({ data: formattedData }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const sassClient = await createSSRSassClient();
-    const supabase = sassClient.getSupabaseClient();
-    const body = await request.json();
-
-    const insertPayload = {
-      title: body.title,
-      description: body.description,
-      subject_id: body.subject_id ? parseInt(body.subject_id) : null,
-      section_id: body.section_id ? parseInt(body.section_id) : null,
-      teacher_id: body.teacher_id ? parseInt(body.teacher_id) : null,
-      due_date: body.due_date,
-      created_at: new Date().toISOString()
-    };
-
-    const { error } = await (supabase.from('assignments') as any)
-      .insert([insertPayload]);
-
-    if (error) throw error;
-
-    return NextResponse.json({ message: "Assignment created successfully" }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function PUT(request: Request) {
-  try {
-    const sassClient = await createSSRSassClient();
-    const supabase = sassClient.getSupabaseClient();
-    const body = await request.json();
-
-    const { id, title, description, subject_id, section_id, due_date } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: "Assignment ID is required" }, { status: 400 });
+    // Optional chronological daily date filter if passed by the frontend view
+    if (date) {
+      query = query.eq("date", date);
     }
 
-    const updatePayload = {
-      title,
-      description,
-      subject_id: subject_id ? parseInt(subject_id) : null,
-      section_id: section_id ? parseInt(section_id) : null,
-      due_date
-    };
-
-    const { error } = await (supabase.from('assignments') as any)
-      .update(updatePayload)
-      .eq('id', id);
+    // Sort items chronologically by class start time
+    const { data, error } = await query.order("start_time", { ascending: true });
 
     if (error) throw error;
 
-    return NextResponse.json({ message: "Assignment updated successfully" }, { status: 200 });
+    // Map through data structures to protect client views against unexpected null values
+    const formattedData = data?.map((entry: any) => ({
+      ...entry,
+      subjects: entry.subjects ? entry.subjects : null,
+      sections: entry.sections ? entry.sections : null,
+    })) || [];
+
+    // Return direct array data back to your client-side timetable page component
+    return NextResponse.json(formattedData, { status: 200 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: Request) {
-  try {
-    const sassClient = await createSSRSassClient();
-    const supabase = sassClient.getSupabaseClient();
-    const body = await request.json();
-    const { id } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: "Assignment ID is required" }, { status: 400 });
-    }
-
-    const { error } = await (supabase.from('assignments') as any)
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-
-    return NextResponse.json({ message: "Assignment deleted successfully" }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to process timetable retrieval" },
+      { status: 500 }
+    );
   }
 }
