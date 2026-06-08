@@ -194,7 +194,7 @@ export default function TeacherDashboard() {
                   ))}
                 </TableBody>
               </Table>
-            )}
+                )}
           </CardContent>
         </Card>
 
