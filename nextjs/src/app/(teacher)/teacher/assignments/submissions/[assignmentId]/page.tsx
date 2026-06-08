@@ -1,7 +1,7 @@
 ﻿"use client";
 
-
-import { useEffect, useState } from "react";
+// 1. Imported 'use' from react to unwrap the asynchronous params object
+import { useEffect, useState, use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
-// All dialog elements (including the missing description) come from here:
 import { 
   Dialog, 
   DialogContent, 
@@ -18,7 +17,16 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 
-export default function AssignmentSubmissionsPage({ params }: { params: { assignmentId: string } }) {
+// 2. Explicitly type params as a Promise for Next.js 15 compatibility
+interface PageProps {
+  params: Promise<{ assignmentId: string }>;
+}
+
+export default function AssignmentSubmissionsPage({ params }: PageProps) {
+  // 3. Unwrap the params Promise synchronously inside the render loop
+  const resolvedParams = use(params);
+  const assignmentId = parseInt(resolvedParams.assignmentId);
+
   const [assignment, setAssignment] = useState<any>(null);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [drafts, setDrafts] = useState<{ [key: number]: { grade: string; feedback: string } }>({});
@@ -27,7 +35,6 @@ export default function AssignmentSubmissionsPage({ params }: { params: { assign
   const [error, setError] = useState<string | null>(null);
 
   const supabase = createClient();
-  const assignmentId = parseInt(params.assignmentId);
 
   const fetchSubmissions = async () => {
     setIsLoading(true);
@@ -52,15 +59,14 @@ export default function AssignmentSubmissionsPage({ params }: { params: { assign
       setSubmissions(subData || []);
       
       // Initialize drafts for inline editing
-      // Initialize drafts for inline editing
-const initialDrafts: any = {};
-subData?.forEach((sub: any) => {  // Added ': any' here to satisfy strict mode
-  initialDrafts[sub.id] = {
-    grade: sub.grade || "",
-    feedback: sub.feedback || ""
-  };
-});
-setDrafts(initialDrafts);
+      const initialDrafts: any = {};
+      subData?.forEach((sub: any) => {  
+        initialDrafts[sub.id] = {
+          grade: sub.grade || "",
+          feedback: sub.feedback || ""
+        };
+      });
+      setDrafts(initialDrafts);
 
     } catch (err: any) {
       setError(err.message);
@@ -70,7 +76,9 @@ setDrafts(initialDrafts);
   };
 
   useEffect(() => {
-    fetchSubmissions();
+    if (assignmentId) {
+      fetchSubmissions();
+    }
   }, [assignmentId]);
 
   const updateDraft = (id: number, field: 'grade' | 'feedback', value: string) => {

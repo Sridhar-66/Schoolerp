@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 
-export default function AssignmentQuestionsPage({ params }: { params: { assignmentId: string } }) {
+interface PageProps {
+  params: Promise<{ assignmentId: string }>;
+}
+
+export default function AssignmentQuestionsPage({ params }: PageProps) {
+  // Unwrap the params Promise using React's use() hook for Next.js 15 compatibility
+  const resolvedParams = use(params);
+  const assignmentId = parseInt(resolvedParams.assignmentId);
+
   const [assignment, setAssignment] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,7 +37,6 @@ export default function AssignmentQuestionsPage({ params }: { params: { assignme
   });
 
   const supabase = createClient();
-  const assignmentId = parseInt(params.assignmentId);
 
   const fetchQuestions = async () => {
     setIsLoading(true);
@@ -59,7 +66,9 @@ export default function AssignmentQuestionsPage({ params }: { params: { assignme
   };
 
   useEffect(() => {
-    fetchQuestions();
+    if (assignmentId) {
+      fetchQuestions();
+    }
   }, [assignmentId]);
 
   const openDialog = (q: any = null) => {
@@ -98,13 +107,11 @@ export default function AssignmentQuestionsPage({ params }: { params: { assignme
       };
 
       if (editingId) {
-        // Fixed: cast table selector to any
         const { error } = await (supabase.from('assignment_questions') as any)
           .update(payload)
           .eq('id', editingId);
         if (error) throw error;
       } else {
-        // Fixed: cast table selector to any
         const { error } = await (supabase.from('assignment_questions') as any)
           .insert([payload]);
         if (error) throw error;
@@ -120,7 +127,6 @@ export default function AssignmentQuestionsPage({ params }: { params: { assignme
   const deleteQuestion = async (id: number) => {
     if (!confirm("Are you sure you want to delete this question?")) return;
     try {
-      // Fixed: cast table selector to any
       const { error } = await (supabase.from('assignment_questions') as any)
         .delete()
         .eq('id', id);
@@ -184,7 +190,8 @@ export default function AssignmentQuestionsPage({ params }: { params: { assignme
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        {/* Suppress accessible summary warnings by explicitly unsetting aria-describedby */}
+        <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Question" : "Add Question"}</DialogTitle>
           </DialogHeader>
@@ -207,7 +214,7 @@ export default function AssignmentQuestionsPage({ params }: { params: { assignme
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Marks</label>
-                <Input type="number" min="1" value={formData.marks} onChange={e => setFormData({...formData, marks: parseInt(e.target.value)})} />
+                <Input type="number" min="1" value={formData.marks} onChange={e => setFormData({...formData, marks: parseInt(e.target.value) || 1})} />
               </div>
             </div>
 
