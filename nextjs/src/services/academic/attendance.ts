@@ -39,19 +39,35 @@ export interface SaveAttendancePayload {
 export async function getSections(): Promise<SectionOption[]> {
   const supabase = createServerAdminClient();
 
-  const { data, error } = await (supabase as any)
+  // Try plural 'classes', fallback to singular 'class' if it fails
+  let { data, error } = await (supabase as any)
     .from("sections")
     .select("id, name, class_id, classes(name)")
     .order("class_id", { ascending: true })
     .order("name", { ascending: true });
 
-  if (error) throw new Error(`Failed to load sections: ${error.message}`);
+  if (error) {
+    console.warn("⚠️ Plural 'classes' relation failed, trying singular 'class'...");
+    const fallback = await (supabase as any)
+      .from("sections")
+      .select("id, name, class_id, class(name)")
+      .order("class_id", { ascending: true })
+      .order("name", { ascending: true });
+    
+    data = fallback.data;
+    error = fallback.error;
+  }
+
+  if (error) {
+    console.error("❌ CRITICAL DATABASE ERROR [getSections]:", error.message);
+    throw new Error(`Failed to load sections: ${error.message}`);
+  }
 
   return (data || []).map((s: any) => ({
     id: s.id,
     name: s.name,
     class_id: s.class_id,
-    class_name: s.classes?.name ?? `Class ${s.class_id}`,
+    class_name: s.classes?.name ?? s.class?.name ?? `Class ${s.class_id}`,
   }));
 }
 
@@ -62,15 +78,36 @@ export async function getTimetableSlots(
   date: string
 ): Promise<TimetableSlot[]> {
   const supabase = createServerAdminClient();
+  console.log(`\n🔍 Fetching timetable for Section: ${section_id} on Date: ${date}`);
 
-  const { data, error } = await (supabase as any)
+  // Try plural 'subjects' first
+  let { data, error } = await (supabase as any)
     .from("timetable")
     .select("id, period_number, date, start_time, end_time, subject_id, subjects(name)")
     .eq("section_id", section_id)
     .eq("date", date)
     .order("period_number", { ascending: true });
 
-  if (error) throw new Error(`Failed to load timetable: ${error.message}`);
+  // Fallback to singular 'subject' if plural fails
+  if (error) {
+    console.warn("⚠️ Plural 'subjects' relation failed, trying singular 'subject'...");
+    const fallback = await (supabase as any)
+      .from("timetable")
+      .select("id, period_number, date, start_time, end_time, subject_id, subject(name)")
+      .eq("section_id", section_id)
+      .eq("date", date)
+      .order("period_number", { ascending: true });
+    
+    data = fallback.data;
+    error = fallback.error;
+  }
+
+  if (error) {
+    console.error("❌ CRITICAL DATABASE ERROR [getTimetableSlots]:", error.message);
+    throw new Error(`Failed to load timetable: ${error.message}`);
+  }
+
+  console.log(`✅ Found ${data?.length || 0} timetable slots for this query.`);
 
   return (data || []).map((t: any) => ({
     id: t.id,
@@ -79,7 +116,7 @@ export async function getTimetableSlots(
     start_time: t.start_time ?? null,
     end_time: t.end_time ?? null,
     subject_id: t.subject_id ?? null,
-    subject_name: t.subjects?.name ?? null,
+    subject_name: t.subjects?.name ?? t.subject?.name ?? "Unknown Subject",
   }));
 }
 
@@ -92,14 +129,29 @@ export async function getStudentsWithAttendance(
 ): Promise<StudentAttendanceRow[]> {
   const supabase = createServerAdminClient();
 
-  const { data: students, error: studentsError } = await (supabase as any)
+  // Try plural 'profiles' then fallback to singular 'profile'
+  let { data: students, error: studentsError } = await (supabase as any)
     .from("students")
     .select("id, roll_number, profiles(full_name)")
     .eq("section_id", section_id)
     .order("roll_number", { ascending: true });
 
-  if (studentsError)
+  if (studentsError) {
+    console.warn("⚠️ Plural 'profiles' relation failed, trying singular 'profile'...");
+    const fallback = await (supabase as any)
+      .from("students")
+      .select("id, roll_number, profile(full_name)")
+      .eq("section_id", section_id)
+      .order("roll_number", { ascending: true });
+    
+    students = fallback.data;
+    studentsError = fallback.error;
+  }
+
+  if (studentsError) {
+    console.error("❌ CRITICAL DATABASE ERROR [getStudentsWithAttendance]:", studentsError.message);
     throw new Error(`Failed to load students: ${studentsError.message}`);
+  }
 
   if (!students || students.length === 0) return [];
 
@@ -112,8 +164,10 @@ export async function getStudentsWithAttendance(
     .eq("timetable_id", timetable_id)
     .eq("date", date);
 
-  if (attError)
+  if (attError) {
+    console.error("❌ CRITICAL DATABASE ERROR [Attendance Fetch]:", attError.message);
     throw new Error(`Failed to load attendance: ${attError.message}`);
+  }
 
   const attendanceMap = new Map<number, { id: number; status: string }>();
   for (const rec of attendanceRecords || []) {
@@ -122,10 +176,11 @@ export async function getStudentsWithAttendance(
 
   return (students as any[]).map((s: any) => {
     const existing = attendanceMap.get(s.id) ?? null;
+    const profileData = s.profiles ?? s.profile;
     return {
       student_id: s.id,
       roll_number: s.roll_number ?? null,
-      full_name: s.profiles?.full_name ?? "Unknown",
+      full_name: profileData?.full_name ?? "Unknown Student",
       attendance_id: existing?.id ?? null,
       status: (existing?.status as "present" | "absent") ?? null,
     };
@@ -154,5 +209,8 @@ export async function saveAttendance(
     .from("attendance")
     .upsert(rows, { onConflict: "student_id,timetable_id,date" });
 
-  if (error) throw new Error(`Failed to save attendance: ${error.message}`);
+  if (error) {
+    console.error("❌ CRITICAL DATABASE ERROR [saveAttendance]:", error.message);
+    throw new Error(`Failed to save attendance: ${error.message}`);
+  }
 }
