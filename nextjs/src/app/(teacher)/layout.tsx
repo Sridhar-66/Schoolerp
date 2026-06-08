@@ -8,7 +8,7 @@ const links = [
   { label: "Attendance",  href: "/teacher/attendance" },
   { label: "Assignments", href: "/teacher/assignments" },
   { label: "Marks",       href: "/teacher/marks" },
-  { label: "Performance", href: "/teacher/performance" },
+  { label: "Announcements", href: "/teacher/announcements" },
   { label: "Timetable",   href: "/teacher/timetable" },
 ];
 
