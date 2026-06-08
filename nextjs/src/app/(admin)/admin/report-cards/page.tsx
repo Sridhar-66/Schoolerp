@@ -27,8 +27,8 @@ export default function AdminReportCardsMasterPage() {
         const supabase = createClient();
         
         const { data, error } = await supabase
-          .from("students")
-          .select("id, roll_no");
+  .from('students')
+  .select('id, class_id, roll_number, section_id') //  Fixed to match your DB!
 
         if (error) {
           // 1. Log the absolute raw object directly without wrapper text
