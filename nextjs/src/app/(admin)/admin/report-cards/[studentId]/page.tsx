@@ -1,8 +1,9 @@
-﻿ "use client"
+﻿"use client"
 
 import { useState, useEffect, use } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { computeGrade } from "@/services/academic/results-helpers"
 
 interface GradeRow {
   subject_name: string
@@ -19,10 +20,9 @@ interface StudentProfile {
 
 export default function StudentReportCardPage({ params }: { params: Promise<{ studentId: string }> }) {
   const resolvedParams = use(params)
-  
   const supabase = createClient()
   const numericStudentId = parseInt(resolvedParams.studentId)
-  
+
   const [student, setStudent] = useState<StudentProfile | null>(null)
   const [grades, setGrades] = useState<GradeRow[]>([])
   const [remarks, setRemarks] = useState<string>("")
@@ -37,11 +37,7 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ st
       try {
         const { data: studentData, error: studentErr } = await (supabase
           .from("students")
-          .select(`
-            roll_number,
-            profiles ( full_name ),
-            classes ( name )
-          `)
+          .select(`roll_number, profiles ( full_name ), classes ( name )`)
           .eq("id", numericStudentId)
           .maybeSingle() as any)
 
@@ -54,18 +50,9 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ st
           })
         }
 
-        // max_marks lives on the exams table, not marks
-        // remarks is the only per-mark text field; no 'grade' column exists
         const { data: marksData, error: marksErr } = await (supabase
           .from("marks")
-          .select(`
-            marks_obtained,
-            remarks,
-            exams (
-              max_marks,
-              subjects ( name )
-            )
-          `)
+          .select(`marks_obtained, remarks, exams ( max_marks, subjects ( name ) )`)
           .eq("student_id", numericStudentId) as any)
 
         if (marksErr) throw marksErr
@@ -73,12 +60,12 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ st
           const formattedGrades = marksData.map((m: any) => {
             const obtained = m.marks_obtained ?? 0
             const max = m.exams?.max_marks ?? 100
+            const pct = max === 0 ? null : Math.round((obtained / max) * 100)
             return {
               subject_name: m.exams?.subjects?.name || "Unknown Subject",
               marks_obtained: obtained,
               max_marks: max,
-              // Derive a letter grade from the percentage since no grade column exists
-              grade: computeGrade(obtained, max),
+              grade: pct === null ? "N/A" : (computeGrade(pct) ?? "F"),
             }
           })
           setGrades(formattedGrades)
@@ -95,7 +82,6 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ st
           setRemarks(reportCard.admin_remarks || "")
           setPublished(reportCard.is_published || false)
         }
-
       } catch (err: any) {
         console.error("Database query failed:", err.message || err.details || err)
       } finally {
@@ -106,26 +92,10 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ st
     loadReportCardData()
   }, [numericStudentId])
 
-  // Derives a letter grade from marks obtained vs max marks
-  function computeGrade(obtained: number, max: number): string {
-    if (max === 0) return "N/A"
-    const pct = (obtained / max) * 100
-    if (pct >= 90) return "A+"
-    if (pct >= 80) return "A"
-    if (pct >= 70) return "B+"
-    if (pct >= 60) return "B"
-    if (pct >= 50) return "C"
-    if (pct >= 40) return "D"
-    return "F"
-  }
-
-  const handlePrint = () => {
-    window.print()
-  }
+  const handlePrint = () => window.print()
 
   const handleSaveChanges = async () => {
     setSaving(true)
-    
     const { error } = await (supabase
       .from("report_cards" as any)
       .upsert({
@@ -134,7 +104,6 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ st
         is_published: published,
         updated_at: new Date().toISOString()
       } as any, { onConflict: "student_id" }) as any)
-
     setSaving(false)
     if (error) {
       alert(`Error updating records: ${error.message}`)
