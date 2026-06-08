@@ -11,8 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const TEACHER_ID = 1;
-
 export default function TeacherAssignmentsPage() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -36,7 +34,8 @@ export default function TeacherAssignmentsPage() {
   const fetchAssignments = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/teacher/assignments?teacher_id=${TEACHER_ID}`);
+      // Teacher identity resolution is securely handled server-side via cookies/session middleware
+      const res = await fetch("/api/teacher/assignments");
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to fetch assignments");
       setAssignments(json.data || []);
@@ -49,7 +48,6 @@ export default function TeacherAssignmentsPage() {
 
   const fetchDependencies = async () => {
     try {
-      // 1. Fetch ALL subjects directly from the subjects table instead of filtering by teacher
       const { data: subData, error: subError } = await supabase
         .from('subjects')
         .select('id, name');
@@ -57,7 +55,6 @@ export default function TeacherAssignmentsPage() {
       if (subError) throw subError;
       setSubjects(subData || []);
 
-      // 2. Fetch all sections
       const { data: secData, error: secError } = await supabase
         .from('sections')
         .select('id, name');
@@ -80,7 +77,6 @@ export default function TeacherAssignmentsPage() {
       setFormData({
         title: assignment.title,
         description: assignment.description || "",
-        // Support both relational layouts defensively
         subject_id: assignment.subject_id?.toString() || "",
         section_id: assignment.section_id?.toString() || "",
         due_date: assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 16) : ""
@@ -103,7 +99,6 @@ export default function TeacherAssignmentsPage() {
       const payload = {
         title: formData.title,
         description: formData.description,
-        teacher_id: TEACHER_ID,
         subject_id: formData.subject_id ? parseInt(formData.subject_id) : null,
         section_id: formData.section_id ? parseInt(formData.section_id) : null,
         due_date: new Date(formData.due_date).toISOString()
@@ -200,7 +195,8 @@ export default function TeacherAssignmentsPage() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        {/* aria-describedby={undefined} explicitly signals to Radix UI that no description string is required */}
+        <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Assignment" : "Create Assignment"}</DialogTitle>
           </DialogHeader>
