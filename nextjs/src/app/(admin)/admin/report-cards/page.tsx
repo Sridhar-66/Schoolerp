@@ -26,22 +26,26 @@ export default function AdminReportCardsMasterPage() {
         setLoading(true);
         const supabase = createClient();
         
-        // Note: ensure your 'students' table also has student_name if you want to select it, 
-        // or join the profiles table if names are stored separately.
         const { data, error } = await supabase
-          .from('students')
-          .select('id, class_id, roll_number, section_id'); 
+  .from('students')
+  .select('id, class_id, roll_number, section_id') //  Fixed to match your DB!g
 
         if (error) {
+          // 1. Log the absolute raw object directly without wrapper text
           console.error("RAW SUPABASE ERROR OBJECT:", error);
+          
+          // 2. Force convert to a flat string to bypass terminal serialization bugs
           console.error("STRINGIFIED ERROR:", JSON.stringify(error, null, 2));
+          
+          // 3. Throw a visible screen notification so you don't even need the console
           alert(`Supabase Rejected: ${error.message || "Check inspect console"}\nCode: ${error.code}`);
+          
           throw error;
         }
 
         const formatted: StudentDirectoryRow[] = (data || []).map((s: any) => ({
           id: s.id,
-          roll_no: s.roll_number, // Fixed: Maps s.roll_number from your select query to roll_no
+          roll_no: s.roll_no,
           student_name: s.student_name || `Student Ref #${s.id}`,
           class_name: "Active Student"
         }));
@@ -50,7 +54,7 @@ export default function AdminReportCardsMasterPage() {
       } catch (err: any) {
         console.error("Runtime exception caught:", err?.message || err);
       } finally {
-        loading(false);
+        setLoading(false);
       }
     };
 
