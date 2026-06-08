@@ -1,11 +1,11 @@
 ﻿import { createBrowserClient } from '@supabase/ssr'
-
 import {
   ClientType,
   SassClient
 } from "@/lib/supabase/unified"
 
-import { Database } from "@/lib/types"
+// 1. Point this directly to your freshly generated types file 👇
+import { Database } from "@/types/supabase" 
 
 export function createClient() {
   return createBrowserClient<Database>(

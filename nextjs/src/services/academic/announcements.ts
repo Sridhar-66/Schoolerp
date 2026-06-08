@@ -1,117 +1,64 @@
-"use server";
+import { createClient } from "@/lib/supabase/client";
+import { SupabaseClient } from "@supabase/supabase-js";
 
-import { createServerAdminClient } from "@/lib/supabase/serverAdminClient";
+// 👉 Ensure this path points exactly to the file where you pasted those types
+import type { Database } from "@/types/supabase"; 
 
-export interface Announcement {
-  id: number;
-  title: string;
-  body: string;
-  target: string | null;
-  target_type: string;
-  is_active: boolean;
-  expires_at: string | null;
-  created_at: string | null;
-  created_by: string | null;
-  poster_name?: string;
-}
+// 1. Extend the strict database row with your UI-specific properties
+export type Announcement = Database["public"]["Tables"]["announcements"]["Row"] & {
+  poster_name?: string | null;
+};
 
-export interface CreateAnnouncementInput {
-  title: string;
-  body: string;
-  target_type: string;
-  target: string | null;
-  expires_at: string | null;
-  created_by: string;
-}
+// 2. Map the insert type directly to the database rules
+export type CreateAnnouncementInput = Database["public"]["Tables"]["announcements"]["Insert"];
+
+// 🔥 THE FIX: Intercept the generic client and force-cast it to your exact Database type.
+// This overrides the broken "Version 12" fallback and forces the "14.5" schema.
+const getDb = () => createClient() as unknown as SupabaseClient<Database>;
 
 export async function getAnnouncements(): Promise<Announcement[]> {
-  const supabase = createServerAdminClient();
-
-  const { data, error } = await (supabase as any)
+  const supabase = getDb();
+  
+  const { data, error } = await supabase
     .from("announcements")
-    .select("id, title, body, target, target_type, is_active, expires_at, created_at, created_by, profiles(full_name)")
+    .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    throw new Error(`Failed to fetch announcements: ${error.message}`);
-  }
-
-  return (data || []).map((a: any) => ({
-    id: a.id,
-    title: a.title,
-    body: a.body,
-    target: a.target,
-    target_type: a.target_type,
-    is_active: a.is_active,
-    expires_at: a.expires_at,
-    created_at: a.created_at,
-    created_by: a.created_by,
-    poster_name: a.profiles?.full_name ?? "Admin",
-  }));
+  if (error) throw new Error(error.message);
+  return data || [];
 }
 
-export async function createAnnouncement(input: CreateAnnouncementInput): Promise<void> {
-  const supabase = createServerAdminClient();
+export async function createAnnouncement(input: CreateAnnouncementInput): Promise<Announcement> {
+  const supabase = getDb();
 
-  const { error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("announcements")
-    .insert({
-      title: input.title,
-      body: input.body,
-      target_type: input.target_type,
-      target: input.target,
-      expires_at: input.expires_at || null,
-      created_by: input.created_by,
-      is_active: true,
-    });
+    .insert(input)
+    .select()
+    .single();
 
-  if (error) {
-    throw new Error(`Failed to create announcement: ${error.message}`);
-  }
+  if (error) throw new Error(error.message);
+  return data as Announcement;
 }
 
-export async function toggleAnnouncementActive(id: number, is_active: boolean): Promise<void> {
-  const supabase = createServerAdminClient();
+export async function toggleAnnouncementActive(id: number, nextState: boolean): Promise<void> {
+  const supabase = getDb();
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from("announcements")
-    .update({ is_active })
+    .update({ is_active: nextState })
     .eq("id", id);
 
-  if (error) {
-    throw new Error(`Failed to update announcement status: ${error.message}`);
-  }
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteAnnouncement(id: number): Promise<void> {
-  const supabase = createServerAdminClient();
+  const supabase = getDb();
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from("announcements")
     .delete()
     .eq("id", id);
 
-  if (error) {
-    throw new Error(`Failed to delete announcement: ${error.message}`);
-  }
-}
-
-export async function getStudentAnnouncements(sectionId: number): Promise<Announcement[]> {
-  const supabase = createServerAdminClient();
-
-  const now = new Date().toISOString();
-
-  const { data, error } = await (supabase as any)
-    .from("announcements")
-    .select("id, title, body, target, target_type, created_at")
-    .eq("is_active", true)
-    .or(`expires_at.is.null,expires_at.gt.${now}`)
-    .or(`target_type.eq.all,and(target_type.eq.role,target.eq.students),and(target_type.eq.section,target.eq.${sectionId})`)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`Failed to fetch student announcements: ${error.message}`);
-  }
-
-  return data || [];
+  if (error) throw new Error(error.message);
 }
